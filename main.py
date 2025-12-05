@@ -1,5 +1,7 @@
+import streamlit as st
+
 def main():
-    print("Hello from f1!")
+    st.slider("Pick a number", 0, 100)
 
 
 if __name__ == "__main__":
