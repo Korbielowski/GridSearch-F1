@@ -11,3 +11,6 @@ wheels/
 
 # Code editors
 /.idea
+
+# Marimo-generated files
+__marimo__/
