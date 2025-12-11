@@ -15,7 +15,8 @@ def _():
     import numpy as np
     import seaborn as sns
     import matplotlib.pyplot as plt
-    return kagglehub, mo, pd, sns
+    from pathlib import Path
+    return Path, kagglehub, mo, pd, sns
 
 
 @app.cell
@@ -27,10 +28,12 @@ def _(mo):
 
 
 @app.cell
-def _(kagglehub):
+def _(Path, kagglehub):
     # Download latest version
-    path = kagglehub.dataset_download(
-        "rohanrao/formula-1-world-championship-1950-2020"
+    path = Path(
+        kagglehub.dataset_download(
+            "rohanrao/formula-1-world-championship-1950-2020"
+        )
     )
 
     print("Path to dataset files:", path)
@@ -39,29 +42,29 @@ def _(kagglehub):
 
 @app.cell
 def _(path, pd):
-    circuits = pd.read_csv(path + "/circuits.csv")
+    circuits = pd.read_csv(path / "circuits.csv")
 
-    constructor_results = pd.read_csv(path + "/constructor_results.csv")
-    constructor_standings = pd.read_csv(path + "/constructor_standings.csv")
-    constructors = pd.read_csv(path + "/constructors.csv")
+    constructor_results = pd.read_csv(path / "constructor_results.csv")
+    constructor_standings = pd.read_csv(path / "constructor_standings.csv")
+    constructors = pd.read_csv(path / "constructors.csv")
 
-    driver_standings = pd.read_csv(path + "/driver_standings.csv")
-    drivers = pd.read_csv(path + "/drivers.csv")
+    driver_standings = pd.read_csv(path / "driver_standings.csv")
+    drivers = pd.read_csv(path / "drivers.csv")
 
-    lap_times = pd.read_csv(path + "/lap_times.csv")
+    lap_times = pd.read_csv(path / "lap_times.csv")
 
-    pit_stops = pd.read_csv(path + "/pit_stops.csv")
+    pit_stops = pd.read_csv(path / "pit_stops.csv")
 
-    qualifying = pd.read_csv(path + "/qualifying.csv")
+    qualifying = pd.read_csv(path / "qualifying.csv")
 
-    races = pd.read_csv(path + "/races.csv")
-    race_results = pd.read_csv(path + "/results.csv")
+    races = pd.read_csv(path / "races.csv")
+    race_results = pd.read_csv(path / "results.csv")
 
-    seasons = pd.read_csv(path + "/results.csv")
+    seasons = pd.read_csv(path / "results.csv")
 
-    sprint_results = pd.read_csv(path + "/sprint_results.csv")
+    sprint_results = pd.read_csv(path / "sprint_results.csv")
 
-    status = pd.read_csv(path + "/status.csv")
+    status = pd.read_csv(path / "status.csv")
     return constructors, drivers, qualifying, race_results, races
 
 
@@ -81,16 +84,16 @@ def _(constructors):
 
 @app.cell
 def _(constructors, pd):
-    def clean_constructors(df: pd.DataFrame):
+    def clean_constructors(df: pd.DataFrame) -> pd.DataFrame:
         to_drop = list(set(df.columns) - {"constructorId", "name"})
         return df.drop(columns=to_drop, inplace=False)
 
 
-    def rename_name_column(df: pd.DataFrame):
+    def rename_name_column(df: pd.DataFrame) -> pd.DataFrame:
         return df.rename(columns={"name": "constructor_name"})
 
 
-    def change_constructor_name_type(df: pd.DataFrame):
+    def change_constructor_name_type(df: pd.DataFrame) -> pd.DataFrame:
         return df.astype({"constructor_name": "category"})
 
 
@@ -111,18 +114,18 @@ def _(drivers):
 
 @app.cell
 def _(drivers, pd):
-    def clean_drivers(df: pd.DataFrame):
+    def clean_drivers(df: pd.DataFrame) -> pd.DataFrame:
         to_drop = list(set(df.columns) - {"driverId", "forename", "surname"})
         return df.drop(columns=to_drop, inplace=False)
 
 
-    def merge_columns_and_clean(df: pd.DataFrame):
+    def merge_columns_and_clean(df: pd.DataFrame) -> pd.DataFrame:
         return df.assign(driver_name=df["forename"] + " " + df["surname"]).drop(
             columns=["forename", "surname"], inplace=False
         )
 
 
-    def change_driver_name_type(df: pd.DataFrame):
+    def change_driver_name_type(df: pd.DataFrame) -> pd.DataFrame:
         return df.astype({"driver_name": "category"})
 
 
@@ -143,7 +146,7 @@ def _(race_results):
 
 @app.cell
 def _(pd, race_results):
-    def clean_race_results(df: pd.DataFrame):
+    def clean_race_results(df: pd.DataFrame) -> pd.DataFrame:
         to_drop = list(
             set(df.columns)
             - {"raceId", "driverId", "constructorId", "grid", "position"}
@@ -151,7 +154,7 @@ def _(pd, race_results):
         return df.drop(columns=to_drop, inplace=False)
 
 
-    def change_position_type(df: pd.DataFrame):
+    def change_position_type(df: pd.DataFrame) -> pd.DataFrame:
         if df["position"].dtype == object:
             return df.assign(
                 position=df["position"].str.replace("\\N", "0").astype("int")
@@ -159,7 +162,7 @@ def _(pd, race_results):
         return df
 
 
-    def rename_columns(df: pd.DataFrame):
+    def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
         return df.rename(
             columns={"grid": "start_position", "position": "race_result"}
         )
@@ -182,7 +185,7 @@ def _(races):
 
 @app.cell
 def _(pd, races):
-    def clean_races(df: pd.DataFrame):
+    def clean_races(df: pd.DataFrame) -> pd.DataFrame:
         to_drop = list(set(df.columns) - {"raceId", "name", "date"})
         return df.drop(
             columns=to_drop,
@@ -190,13 +193,13 @@ def _(pd, races):
         )
 
 
-    def change_name_date_types(df: pd.DataFrame):
+    def change_name_date_types(df: pd.DataFrame) -> pd.DataFrame:
         return df.assign(date=pd.to_datetime(df["date"])).astype(
             {"name": "category"}
         )
 
 
-    def rename_race_name(df: pd.DataFrame):
+    def rename_race_name(df: pd.DataFrame) -> pd.DataFrame:
         return df.rename(columns={"name": "race_name", "date": "race_date"})
 
 
@@ -215,12 +218,12 @@ def _(qualifying):
 
 @app.cell
 def _(pd, qualifying):
-    def clean_qualifying(df: pd.DataFrame):
+    def clean_qualifying(df: pd.DataFrame) -> pd.DataFrame:
         to_drop = list(set(df.columns) - {"raceId", "driverId", "position"})
         return df.drop(columns=to_drop, inplace=False)
 
 
-    def rename_position(df: pd.DataFrame):
+    def rename_position(df: pd.DataFrame) -> pd.DataFrame:
         return df.rename(columns={"position": "quali_result"})
 
 
@@ -231,11 +234,13 @@ def _(pd, qualifying):
 
 @app.cell
 def _(pd, qualifying_cleaned, race_results_cleaned, races_cleaned):
-    def merge_races(df: pd.DataFrame, to_merge: pd.DataFrame):
+    def merge_races(df: pd.DataFrame, to_merge: pd.DataFrame) -> pd.DataFrame:
         return df.merge(right=to_merge, how="inner", on="raceId")
 
 
-    def merge_qualifications(df: pd.DataFrame, to_merge: pd.DataFrame):
+    def merge_qualifications(
+        df: pd.DataFrame, to_merge: pd.DataFrame
+    ) -> pd.DataFrame:
         return df.merge(right=to_merge, how="left", on=["driverId", "raceId"])
 
 
@@ -248,17 +253,21 @@ def _(pd, qualifying_cleaned, race_results_cleaned, races_cleaned):
 
 @app.cell
 def _(constructors_cleaned, drivers_cleaned, full_race_weekend, pd):
-    def merge_full_race_weekend(df: pd.DataFrame, to_merge: pd.DataFrame):
+    def merge_full_race_weekend(
+        df: pd.DataFrame, to_merge: pd.DataFrame
+    ) -> pd.DataFrame:
         return df.merge(right=to_merge, how="right", on="driverId")
 
 
-    def merge_constructors_cleaned(df: pd.DataFrame, to_merge: pd.DataFrame):
+    def merge_constructors_cleaned(
+        df: pd.DataFrame, to_merge: pd.DataFrame
+    ) -> pd.DataFrame:
         return df.merge(right=to_merge, how="left", on="constructorId")
 
 
     def sort_and_select_dates(
         df: pd.DataFrame, start_date: str = "2014-01-01", end_date: str = ""
-    ):
+    ) -> pd.DataFrame:
         sorted_df = df.sort_values(by="race_date", ascending=True, inplace=False)
         if end_date:
             return sorted_df[
@@ -268,12 +277,12 @@ def _(constructors_cleaned, drivers_cleaned, full_race_weekend, pd):
         return sorted_df[sorted_df["race_date"] >= pd.to_datetime(start_date)]
 
 
-    def drop_ids(df: pd.DataFrame):
+    def drop_ids(df: pd.DataFrame) -> pd.DataFrame:
         to_drop = ["driverId", "raceId", "constructorId"]
         return df.drop(columns=to_drop, inplace=False)
 
 
-    def fix_quali_result_column(df: pd.DataFrame):
+    def fix_quali_result_column(df: pd.DataFrame) -> pd.DataFrame:
         return df.assign(
             quali_result=df["quali_result"]
             .fillna(df["start_position"])
