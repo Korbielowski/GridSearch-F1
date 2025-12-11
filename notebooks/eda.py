@@ -274,8 +274,10 @@ def _(constructors_cleaned, drivers_cleaned, full_race_weekend, pd):
 
     def fix_quali_result_column(df: pd.DataFrame):
         return df.assign(
-            quali_result=df["quali_result"].fillna(df["start_position"])
-        ).astype({"quali_result": "int"})
+            quali_result=df["quali_result"]
+            .fillna(df["start_position"])
+            .astype("int")
+        )
 
 
     driver_performance = (
