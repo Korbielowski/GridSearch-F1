@@ -14,6 +14,7 @@ def _():
     import marimo as mo
     import numpy as np
     import seaborn as sns
+    import matplotlib.pyplot as plt
     return kagglehub, mo, pd, sns
 
 
@@ -300,26 +301,89 @@ def _(mo):
 
 
 @app.cell
-def _(driver_performance, sns):
-    sns.boxplot(driver_performance, x="start_position", y="race_result")
+def _(driver_performance):
+    dp = driver_performance
+    return (dp,)
+
+
+@app.cell
+def _(dp, sns):
+    sns.boxplot(dp, x="start_position", y="race_result")
     return
 
 
 @app.cell
-def _(driver_performance, pd, sns):
-    start_result_heatmap = pd.crosstab(
-        driver_performance["race_result"], driver_performance["start_position"]
-    )
-    sns.heatmap(start_result_heatmap, cmap="viridis", annot=False)
+def _(mo):
+    mo.md(r"""
+    ## Let's plot and see, whether the place at the start of the grand prix determine the race result for a driver.
+    """)
     return
 
 
 @app.cell
-def _(driver_performance, pd, sns):
-    quali_result_heatmap = pd.crosstab(
-        driver_performance["race_result"], driver_performance["quali_result"]
-    )
-    sns.heatmap(quali_result_heatmap, cmap="viridis", annot=False)
+def _(pd, sns):
+    def heatmap(x: pd.Series, y: pd.Series):
+        crosstab = pd.crosstab(y, x)
+        ax = sns.heatmap(crosstab, cmap="viridis", annot=False)
+        return ax.figure
+    return (heatmap,)
+
+
+@app.cell
+def _(dp, heatmap):
+    heatmap(dp["start_position"], dp["race_result"])
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## Why are we plotting race_result against the start_position and then once again against the qualifying result? The second heat map illustrates better the tempo of a driver and a car, while the first shows us the starting positions after qualifying and grid penalties e.g. for blocking another driver or car changes like PU (power unit).
+    """)
+    return
+
+
+@app.cell
+def _(dp, heatmap):
+    heatmap(dp["quali_result"], dp["race_result"])
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## We can clearly see that the higher we qualify and start the race, the higher are chances that we will finish the race or even win it. While being in the middel of a F1 pack makes it more probable that driver will crash with others.
+    """)
+    return
+
+
+@app.cell
+def _(dp, heatmap):
+    heatmap(dp["constructor_name"], dp["race_result"])
+    return
+
+
+@app.cell
+def _(dp, heatmap):
+    heatmap(dp["constructor_name"], dp["quali_result"])
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## We can see that three teams are way ahead of others, and those are Mercedes, Ferrari and RedBull.
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## Summary
+    ## The cutoff date for the data is 2024-12-08(YYYY-MM-DD), so it gives us the whole 2025 season to then test models upon, maybe we will be able to accurately predict, who got championship this year(Lando Norris).
+    ## Qualifying position and start position are very strong predictors, as to whether driver will score good on the Saturday, or even finish the race. Because the data show, that the further from the pole position we start, the higher the chance we will not finish a race. The most endangered drivers are those in the so called midfield.
+    """)
     return
 
 
