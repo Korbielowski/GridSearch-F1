@@ -16,7 +16,7 @@ def _():
     import seaborn as sns
     import matplotlib.pyplot as plt
     from pathlib import Path
-    return Path, kagglehub, mo, pd, sns
+    return Path, kagglehub, mo, pd, plt, sns
 
 
 @app.cell
@@ -290,12 +290,28 @@ def _(constructors_cleaned, drivers_cleaned, full_race_weekend, pd):
         )
 
 
+    def remove_dates(df: pd.DataFrame) -> pd.DataFrame:
+        to_drop = ["race_date"]
+        return df.drop(columns=to_drop, inplace=False)
+
+
+    def fix_categories(df: pd.DataFrame) -> pd.DataFrame:
+        df["driver_name"] = df["driver_name"].cat.remove_unused_categories()
+        df["constructor_name"] = df[
+            "constructor_name"
+        ].cat.remove_unused_categories()
+        df["race_name"] = df["race_name"].cat.remove_unused_categories()
+        return df
+
+
     driver_performance = (
         drivers_cleaned.pipe(merge_full_race_weekend, to_merge=full_race_weekend)
         .pipe(merge_constructors_cleaned, to_merge=constructors_cleaned)
         .pipe(drop_ids)
         .pipe(sort_and_select_dates)
         .pipe(fix_quali_result_column)
+        .pipe(fix_categories)
+        .pipe(remove_dates)
     )
     driver_performance
     return (driver_performance,)
@@ -324,7 +340,7 @@ def _(dp, sns):
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## Let's plot and see, whether the place at the start of the grand prix determine the race result for a driver.
+    ### Let's plot and see, whether the place at the start of the grand prix determine the race result for a driver.
     """)
     return
 
@@ -347,7 +363,7 @@ def _(dp, heatmap):
 @app.cell
 def _(mo):
     mo.md(r"""
-    ## Why are we plotting race_result against the start_position and then once again against the qualifying result? The second heat map illustrates better the tempo of a driver and a car, while the first shows us the starting positions after qualifying and grid penalties e.g. for blocking another driver or car changes like PU (power unit).
+    ### Why are we plotting race_result against the start_position and then once again against the qualifying result? The second heat map illustrates better the tempo of a driver and a car, while the first shows us the starting positions after qualifying and grid penalties e.g. for blocking another driver or car changes like PU (power unit).
     """)
     return
 
@@ -359,9 +375,15 @@ def _(dp, heatmap):
 
 
 @app.cell
+def _(dp):
+    dp.corr(method="pearson", numeric_only=True)
+    return
+
+
+@app.cell
 def _(mo):
     mo.md(r"""
-    ## We can clearly see that the higher we qualify and start the race, the higher are chances that we will finish the race or even win it. While being in the middel of a F1 pack makes it more probable that driver will crash with others.
+    ### We can clearly see that the higher we qualify and start the race, the higher are chances that we will finish the race or even win it. While being in the middel of a F1 pack makes it more probable that driver will crash with others.
     """)
     return
 
@@ -379,9 +401,35 @@ def _(dp, heatmap):
 
 
 @app.cell
+def _(dp, plt, sns):
+    constructor_wins = (
+        dp[["constructor_name", "race_result"]][dp["race_result"] == 1]
+        .groupby("constructor_name", observed=True, as_index=False)
+        .count()
+    )
+
+    plt.subplots(figsize=(20, 10))
+    sns.barplot(
+        constructor_wins,
+        x="constructor_name",
+        y="race_result",
+        order=constructor_wins.sort_values(by="race_result", ascending=False)[
+            "constructor_name"
+        ],
+    )
+    return
+
+
+@app.cell
+def _():
+    # TODO: Create new features like win ratio and plot them too. Try this also with rolling window
+    return
+
+
+@app.cell
 def _(mo):
     mo.md(r"""
-    ## We can see that three teams are way ahead of others, and those are Mercedes, Ferrari and RedBull.
+    ### We can see that three teams are way ahead of others, and those are Mercedes, Ferrari and RedBull.
     """)
     return
 
@@ -390,9 +438,40 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     ## Summary
-    ## The cutoff date for the data is 2024-12-08(YYYY-MM-DD), so it gives us the whole 2025 season to then test models upon, maybe we will be able to accurately predict, who got championship this year(Lando Norris).
-    ## Qualifying position and start position are very strong predictors, as to whether driver will score good on the Saturday, or even finish the race. Because the data show, that the further from the pole position we start, the higher the chance we will not finish a race. The most endangered drivers are those in the so called midfield.
+    ### The cutoff date for the data is 2024-12-08(YYYY-MM-DD), so it gives us the whole 2025 season to then test models upon, maybe we will be able to accurately predict, who got championship this year(Lando Norris).
+    ### Qualifying position and start position are very strong predictors, as to whether driver will score good on the Saturday, or even finish the race. Because the data show, that the further from the pole position we start, the higher the chance we will not finish a race. The most endangered drivers are those in the so called midfield.
     """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ### As we have some information about our our data, I think that it is a good time to start preparing input data for models, and create some additional features, that would for example represent drivers/constructors recent form from 5 last races.
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    # Models
+
+    ### Now we will try out a few different models on our data, and see what we get in return. If they behave quite well on the data, we will try and make some additional data for the models to learn on, to make them even better. If it turns out that we don't get the desired results on many different models, we will try to rething data that we them with.
+    """)
+    return
+
+
+@app.cell
+def _():
+    from sklearn.model_selection import train_test_split
+    from sklearn.linear_model import LinearRegression
+    return
+
+
+@app.cell
+def _():
+    # X, y = train_test_split(, random_seed=42)
     return
 
 
