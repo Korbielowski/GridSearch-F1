@@ -14,3 +14,4 @@ wheels/
 
 # Marimo-generated files
 __marimo__/
+theme.css
