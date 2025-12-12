@@ -421,8 +421,16 @@ def _(dp, plt, sns):
 
 
 @app.cell
-def _():
+def _(dp):
     # TODO: Create new features like win ratio and plot them too. Try this also with rolling window
+    test = dp.copy(deep=True)
+    driver_win_ratio = (
+        dp[(dp["driver_name"] == "Lewis Hamilton")]["race_result"]
+        .rolling(window=3)
+        .mean()
+        .round(2)
+    ).fillna(value=0)
+    driver_win_ratio
     return
 
 
