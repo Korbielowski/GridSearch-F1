@@ -474,12 +474,30 @@ def _(mo):
 def _():
     from sklearn.model_selection import train_test_split
     from sklearn.linear_model import LinearRegression
-    return
+    return (train_test_split,)
 
 
 @app.cell
-def _():
-    # X, y = train_test_split(, random_seed=42)
+def _(dp, pd):
+    dp_for_train = pd.concat(
+        [dp, pd.get_dummies(dp["constructor_name"])], axis=1
+    ).drop(columns=["driver_name", "race_name", "constructor_name"])
+    dp_for_train
+    return (dp_for_train,)
+
+
+@app.cell
+def _(dp_for_train):
+    y = dp_for_train["race_result"]
+    X = dp_for_train.drop(columns=["race_result"], inplace=False)
+    return X, y
+
+
+@app.cell
+def _(X, train_test_split, y):
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, train_size=0.8, test_size=0.2, random_state=42
+    )
     return
 
 
