@@ -474,7 +474,7 @@ def _(mo):
 def _():
     from sklearn.model_selection import train_test_split
     from sklearn.linear_model import LinearRegression
-    return (train_test_split,)
+    return LinearRegression, train_test_split
 
 
 @app.cell
@@ -487,17 +487,53 @@ def _(dp, pd):
 
 
 @app.cell
-def _(dp_for_train):
-    y = dp_for_train["race_result"]
-    X = dp_for_train.drop(columns=["race_result"], inplace=False)
-    return X, y
+def _(pd, train_test_split):
+    def prepare_for_model(
+        df: pd.DataFrame,
+        # to_drop: list[str],
+    ) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame):
+        y = df["race_result"]
+        X = df.drop(columns=["race_result"], inplace=False)
+        return train_test_split(
+            X, y, train_size=0.8, test_size=0.2, random_state=42
+        )
+    return (prepare_for_model,)
 
 
 @app.cell
-def _(X, train_test_split, y):
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, train_size=0.8, test_size=0.2, random_state=42
-    )
+def _(dp_for_train, prepare_for_model):
+    X_train, X_test, y_train, y_test = prepare_for_model(dp_for_train)
+    X_train
+    return X_test, X_train, y_test, y_train
+
+
+@app.cell
+def _(LinearRegression, X_train, y_train):
+    reg = LinearRegression().fit(X_train, y_train)
+    return (reg,)
+
+
+@app.cell
+def _(X_train, reg, y_train):
+    reg.score(X_train, y_train)
+    return
+
+
+@app.cell
+def _(X_test, reg):
+    reg.predict(X_test)
+    return
+
+
+@app.cell
+def _(LinearRegression, X_train, y_train):
+    reg_2 = LinearRegression().fit(X_train, y_train)
+    return (reg_2,)
+
+
+@app.cell
+def _(X_test, reg_2, y_test):
+    reg_2.score(X_test, y_test)
     return
 
 
