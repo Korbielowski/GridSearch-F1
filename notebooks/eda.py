@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.18.4"
+__generated_with = "0.21.1"
 app = marimo.App(
     width="medium",
     css_file="/home/dawid/Documents/python/f1/notebooks/theme.css",
@@ -16,6 +16,7 @@ def _():
     import seaborn as sns
     import matplotlib.pyplot as plt
     from pathlib import Path
+
     return Path, kagglehub, mo, pd, plt, sns
 
 
@@ -351,6 +352,7 @@ def _(pd, sns):
         crosstab = pd.crosstab(y, x)
         ax = sns.heatmap(crosstab, cmap="viridis", annot=False)
         return ax.figure
+
     return (heatmap,)
 
 
@@ -423,14 +425,29 @@ def _(dp, plt, sns):
 @app.cell
 def _(dp):
     # TODO: Create new features like win ratio and plot them too. Try this also with rolling window
+
     test = dp.copy(deep=True)
-    driver_win_ratio = (
-        dp[(dp["driver_name"] == "Lewis Hamilton")]["race_result"]
-        .rolling(window=3)
+    test["dirver_performance"] = (
+        test.groupby("driver_name", observed=False)["race_result"]
+        .rolling(window=3, min_periods=1)
         .mean()
-        .round(2)
-    ).fillna(value=0)
-    driver_win_ratio
+        .reset_index(level=0, drop=True)
+    )
+    test
+    return (test,)
+
+
+@app.cell
+def _(test):
+    test_2 = test.copy(deep=True)
+    # test_2["constructor_performance"] = (
+    test_2.groupby(["constructor_name", ""], observed=False)[
+        "race_result"
+    ].rolling(window=6, min_periods=1).mean()
+    # .rolling(window=6, min_periods=2)
+    # .reset_index(level=0, drop=True)
+    # )
+    # test_2
     return
 
 
@@ -473,8 +490,9 @@ def _(mo):
 @app.cell
 def _():
     from sklearn.model_selection import train_test_split
-    from sklearn.linear_model import LinearRegression
-    return LinearRegression, train_test_split
+    from sklearn.linear_model import LogisticRegression
+
+    return LogisticRegression, train_test_split
 
 
 @app.cell
@@ -497,6 +515,7 @@ def _(pd, train_test_split):
         return train_test_split(
             X, y, train_size=0.8, test_size=0.2, random_state=42
         )
+
     return (prepare_for_model,)
 
 
@@ -508,8 +527,8 @@ def _(dp_for_train, prepare_for_model):
 
 
 @app.cell
-def _(LinearRegression, X_train, y_train):
-    reg = LinearRegression().fit(X_train, y_train)
+def _(LogisticRegression, X_train, y_train):
+    reg = LogisticRegression().fit(X_train, y_train)
     return (reg,)
 
 
