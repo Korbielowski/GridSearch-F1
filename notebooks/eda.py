@@ -446,7 +446,7 @@ def _(test):
         test_2.groupby(["race_date", "constructor_name"], observed=False)[
             "race_result"
         ]
-        .apply(lambda x: x.sum() / 2)
+        .mean()
         .fillna(0)
         .reset_index(name="team_race_result")
         .sort_values(by=["race_date", "constructor_name"])
@@ -460,7 +460,7 @@ def _(tmp):
     x = (
         tmp.groupby(["constructor_name"], observed=False)["team_race_result"]
         .rolling(window=3, min_periods=1)
-        .apply(lambda c: c.sum() / 3)
+        .mean()
         .round(decimals=2)
         .reset_index(level=0, drop=True)
     )
