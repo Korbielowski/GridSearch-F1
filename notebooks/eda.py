@@ -312,7 +312,7 @@ def _(constructors_cleaned, drivers_cleaned, full_race_weekend, pd):
         .pipe(sort_and_select_dates)
         .pipe(fix_quali_result_column)
         .pipe(fix_categories)
-        .pipe(remove_dates)
+        # .pipe(remove_dates)
     )
     driver_performance
     return (driver_performance,)
@@ -423,14 +423,15 @@ def _(dp, plt, sns):
 
 
 @app.cell
-def _(dp):
+def _(driver_performance):
     # TODO: Create new features like win ratio and plot them too. Try this also with rolling window
 
-    test = dp.copy(deep=True)
+    test = driver_performance.copy(deep=True)
     test["dirver_performance"] = (
         test.groupby("driver_name", observed=False)["race_result"]
         .rolling(window=3, min_periods=1)
         .mean()
+        .round(decimals=2)
         .reset_index(level=0, drop=True)
     )
     test
@@ -440,14 +441,32 @@ def _(dp):
 @app.cell
 def _(test):
     test_2 = test.copy(deep=True)
-    # test_2["constructor_performance"] = (
-    test_2.groupby(["constructor_name", ""], observed=False)[
-        "race_result"
-    ].rolling(window=6, min_periods=1).mean()
-    # .rolling(window=6, min_periods=2)
-    # .reset_index(level=0, drop=True)
-    # )
-    # test_2
+
+    tmp = (
+        test_2.groupby(["race_date", "constructor_name"], observed=False)[
+            "race_result"
+        ]
+        .apply(lambda x: x.sum() / 2)
+        .fillna(0)
+        .reset_index(name="team_race_result")
+        .sort_values(by=["race_date", "constructor_name"])
+    )
+    tmp
+    return (tmp,)
+
+
+@app.cell
+def _(tmp):
+    x = (
+        tmp.groupby(["constructor_name"], observed=False)["team_race_result"]
+        .rolling(window=3, min_periods=1)
+        .apply(lambda c: c.sum() / 3)
+        .round(decimals=2)
+        .reset_index(level=0, drop=True)
+    )
+    x
+    tmp["cos"] = x
+    tmp
     return
 
 
