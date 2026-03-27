@@ -319,6 +319,93 @@ def _(constructors_cleaned, drivers_cleaned, full_race_weekend, pd):
 
 
 @app.cell
+def _(driver_performance):
+    # def replace_zeros(series: pd.Series) -> pd.Series:
+    #     value = driver_count_per_race[
+    #         driver_count_per_race["race_date"] == series.race_date
+    #     ]["driver_name"]
+    #     out_series = series.replace(to_replace=0, value=value.values[0])
+    #     return out_series
+
+    driver_count_per_race = driver_performance.groupby(by="race_date")[
+        "driver_name"
+    ].transform("count")
+    driver_performance_2 = driver_performance.copy(deep=True)
+
+    mask = driver_performance_2["race_result"] == 0
+    driver_performance_2.loc[mask, "race_result"] = driver_count_per_race[mask]
+
+
+    mask_2 = driver_performance_2["quali_result"] == 0
+    driver_performance_2.loc[mask_2, "quali_result"] = driver_count_per_race[
+        mask_2
+    ]
+
+
+    mask_3 = driver_performance_2["start_position"] == 0
+    driver_performance_2.loc[mask_3, "start_position"] = driver_count_per_race[
+        mask_3
+    ]
+
+    driver_performance_2
+    return (driver_performance_2,)
+
+
+@app.cell
+def _(driver_performance_2):
+    driver_performance_2["driver_rolling_avg"] = (
+        driver_performance_2.groupby("driver_name", observed=False)["race_result"]
+        .rolling(window=3, min_periods=1)
+        .mean()
+        .round(decimals=2)
+        .reset_index(level=0, drop=True)
+    )
+    driver_performance_2
+    return
+
+
+@app.cell
+def _(driver_performance_2):
+    tmp = (
+        driver_performance_2.groupby(
+            ["race_date", "constructor_name"], observed=False
+        )["race_result"]
+        .mean()
+        .fillna(0)
+        .reset_index(name="team_race_result")
+        .sort_values(by=["race_date", "constructor_name"])
+    )
+    tmp["constructor_rolling_avg"] = (
+        tmp.groupby(["constructor_name"], observed=False)["team_race_result"]
+        .rolling(window=3, min_periods=1)
+        .mean()
+        .round(decimals=2)
+        .reset_index(level=0, drop=True)
+    )
+    tmp
+    return (tmp,)
+
+
+@app.cell
+def _(driver_performance_2, tmp):
+    driver_performance_3 = driver_performance_2.merge(
+        right=tmp[["race_date", "constructor_name", "constructor_rolling_avg"]],
+        on=["race_date", "constructor_name"],
+    )
+    driver_performance_3
+    return (driver_performance_3,)
+
+
+@app.cell
+def _(driver_performance_3):
+    x = driver_performance_3.groupby(
+        ["driver_name", "race_name"], observed=False
+    ).count()
+    x
+    return
+
+
+@app.cell
 def _(mo):
     mo.md(r"""
     # Explore, plot, and analyze data
@@ -327,8 +414,8 @@ def _(mo):
 
 
 @app.cell
-def _(driver_performance):
-    dp = driver_performance
+def _(driver_performance_3):
+    dp = driver_performance_3
     return (dp,)
 
 
@@ -423,50 +510,7 @@ def _(dp, plt, sns):
 
 
 @app.cell
-def _(driver_performance):
-    # TODO: Create new features like win ratio and plot them too. Try this also with rolling window
-
-    test = driver_performance.copy(deep=True)
-    test["dirver_performance"] = (
-        test.groupby("driver_name", observed=False)["race_result"]
-        .rolling(window=3, min_periods=1)
-        .mean()
-        .round(decimals=2)
-        .reset_index(level=0, drop=True)
-    )
-    test
-    return (test,)
-
-
-@app.cell
-def _(test):
-    test_2 = test.copy(deep=True)
-
-    tmp = (
-        test_2.groupby(["race_date", "constructor_name"], observed=False)[
-            "race_result"
-        ]
-        .mean()
-        .fillna(0)
-        .reset_index(name="team_race_result")
-        .sort_values(by=["race_date", "constructor_name"])
-    )
-    tmp
-    return (tmp,)
-
-
-@app.cell
-def _(tmp):
-    x = (
-        tmp.groupby(["constructor_name"], observed=False)["team_race_result"]
-        .rolling(window=3, min_periods=1)
-        .mean()
-        .round(decimals=2)
-        .reset_index(level=0, drop=True)
-    )
-    x
-    tmp["cos"] = x
-    tmp
+def _():
     return
 
 
