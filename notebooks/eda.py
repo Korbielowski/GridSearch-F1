@@ -17,7 +17,7 @@ def _():
     import matplotlib.pyplot as plt
     from pathlib import Path
 
-    return Path, kagglehub, mo, pd, plt, sns
+    return Path, kagglehub, mo, np, pd, plt, sns
 
 
 @app.cell
@@ -398,9 +398,9 @@ def _(driver_performance_2, tmp):
 
 @app.cell
 def _(driver_performance_3):
-    x = driver_performance_3.groupby(
-        ["driver_name", "race_name"], observed=False
-    ).count()
+    x = driver_performance_3.groupby(["driver_name", "race_name"], observed=False)[
+        "race_date"
+    ].count()
     x
     return
 
@@ -552,70 +552,168 @@ def _(mo):
 
 @app.cell
 def _():
-    from sklearn.model_selection import train_test_split
-    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
+    from sklearn.ensemble import RandomForestRegressor
 
-    return LogisticRegression, train_test_split
+    return
+
+
+@app.cell
+def _():
+    # dp_for_train = pd.concat(
+    #     [dp, pd.get_dummies(dp["constructor_name"])], axis=1
+    # ).drop(columns=["driver_name", "race_name", "constructor_name"])
+    # dp_for_train
+    # def prepare_data_for_train_test(df: pd.DataFrame) -> pd.DataFrame:
+    #     return df.drop(
+    #         columns=["driver_name", "race_name", "race_date", "constructor_name"],
+    #         inplace=False,
+    #     )
+    #     return
+
+
+    # dp_for_training = prepare_data_for_train_test(dp)
+    # dp_for_training
+    return
+
+
+@app.cell
+def _(dp):
+    dp
+    return
 
 
 @app.cell
 def _(dp, pd):
-    dp_for_train = pd.concat(
-        [dp, pd.get_dummies(dp["constructor_name"])], axis=1
-    ).drop(columns=["driver_name", "race_name", "constructor_name"])
-    dp_for_train
-    return (dp_for_train,)
+    def train_test_split(
+        df: pd.DataFrame, train_size: float
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        train_index = int(train_size * len(dp.index))
 
+        start_date = df.iloc[[train_index]]["race_date"].values[0]
 
-@app.cell
-def _(pd, train_test_split):
-    def prepare_for_model(
-        df: pd.DataFrame,
-        # to_drop: list[str],
-    ) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame):
-        y = df["race_result"]
-        X = df.drop(columns=["race_result"], inplace=False)
-        return train_test_split(
-            X, y, train_size=0.8, test_size=0.2, random_state=42
+        race_dates = tuple(df.iloc[train_index:]["race_date"])
+
+        for race_date in race_dates:
+            if start_date != race_date:
+                break
+            train_index += 1
+
+        train_index += 1
+        X_train, y_train = (
+            df.iloc[:train_index],
+            df.iloc[:train_index]["race_result"],
         )
 
-    return (prepare_for_model,)
+        X_test, y_test = (
+            df.iloc[train_index:],
+            df.iloc[train_index:]["race_result"],
+        )
+        return X_train, X_test, y_train, y_test
+
+
+    X_train, X_test, y_train, y_test = train_test_split(dp, train_size=0.8)
+    return X_test, X_train, y_test
 
 
 @app.cell
-def _(dp_for_train, prepare_for_model):
-    X_train, X_test, y_train, y_test = prepare_for_model(dp_for_train)
-    X_train
-    return X_test, X_train, y_test, y_train
+def _(X_train):
+    race_dates = X_train["race_date"]
+
+    X_train.drop(
+        columns=[
+            "race_date",
+            "driver_name",
+            "race_result",
+            "race_name",
+            "constructor_name",
+        ],
+        inplace=False,
+    )
+    race_dates
+    return (race_dates,)
 
 
 @app.cell
-def _(LogisticRegression, X_train, y_train):
-    reg = LogisticRegression().fit(X_train, y_train)
-    return (reg,)
+def _(np, pd):
+    class GroupTimeSeriesSplit:
+        def __init__(
+            self, race_dates, n_splits: int = 5, max_train_size: int | None = None
+        ) -> None:
+            self.race_dates = np.array(race_dates)
+            self.n_splits = n_splits
+            self.max_train_size = max_train_size
+
+        def split(self, X: pd.DataFrame, y=None, groups=None):
+            groups = np.unique(self.race_dates)
+            # print(groups)
+
+            # print(f"{type(self.race_dates)=}, {type(groups)=}")
+
+            fold_size = len(groups) // (self.n_splits + 1)
+
+            for i in range(0, self.n_splits):
+                train_end = (i + 1) * fold_size
+                test_end = train_end + fold_size
+                train_groups = X[:train_end]
+                test_groups = X[train_end:test_end]
+                # print(
+                #     f"{len(groups)=}\n{fold_size=}\n{train_end=}\n{test_end=}\n{i=}\n\n"
+                # )
+                train_idx = np.nonzero(np.isin(self.race_dates, train_groups))
+                test_idx = np.flatnonzero(np.isin(self.race_dates, train_groups))
+
+                if i == 0:
+                    print(f"{len(self.race_dates)=}")
+                    print(train_idx)
+
+                # print(f"{len(train_idx)=}\n{len(test_idx)=}\n\n")
+
+                yield train_idx, test_idx
+
+        def get_n_splits(self, X, y=None, groups=None) -> int:
+            return self.n_splits
+
+    return (GroupTimeSeriesSplit,)
 
 
 @app.cell
-def _(X_train, reg, y_train):
-    reg.score(X_train, y_train)
+def _(GroupTimeSeriesSplit, X_train, race_dates):
+    splitter = GroupTimeSeriesSplit(race_dates=race_dates, n_splits=6)
+    output = splitter.split(X_train)
+    next(output)
     return
 
 
 @app.cell
-def _(X_test, reg):
-    reg.predict(X_test)
+def _():
+    # search = GridSearchCV(
+    #     estimator=RandomForestRegressor(random_state=42),
+    #     param_grid={
+    #         "n_estimators": [100, 200, 300],
+    #         "max_depth": [None, 10, 50, 100],
+    #         "min_samples_leaf": [1, 2, 5, 10],
+    #     },
+    #     cv=GroupTimeSeriesSplit(race_dates=race_dates, n_splits=6),
+    # )
+    # search.fit(X_train, y_train)
     return
 
 
 @app.cell
-def _(LinearRegression, X_train, y_train):
-    reg_2 = LinearRegression().fit(X_train, y_train)
-    return (reg_2,)
+def _(X_test, y_test):
+    start = 20
+    stop = 30
+    test_sample, test_sample_ans = X_test.iloc[start:stop], y_test.iloc[start:stop]
+    print(f"{test_sample=}\n{test_sample_ans=}")
+    return test_sample, test_sample_ans
 
 
 @app.cell
-def _(X_test, reg_2, y_test):
-    reg_2.score(X_test, y_test)
+def _(search, test_sample, test_sample_ans):
+    best_estimator = search.best_estimator_
+    test_ans = best_estimator.predict(test_sample)
+    print(f"{test_ans - test_sample_ans}")
     return
 
 
